@@ -1,18 +1,7 @@
 new Vue({
     el: '#app',
     data: {
-        lessons: [
-            { id: 1, subject: 'Mathematics', location: 'London', price: 100, spaces: 5, image: 'images/math.jpg' },
-            { id: 2, subject: 'English', location: 'London', price: 90, spaces: 5, image: 'images/english.jpg' },
-            { id: 3, subject: 'Science', location: 'Manchester', price: 110, spaces: 5, image: 'images/science.jpg' },
-            { id: 4, subject: 'History', location: 'Bristol', price: 80, spaces: 5, image: 'images/history.jpg' },
-            { id: 5, subject: 'Art', location: 'London', price: 120, spaces: 5, image: 'images/art.jpg' },
-            { id: 6, subject: 'Music', location: 'Manchester', price: 95, spaces: 5, image: 'images/music.jpg' },
-            { id: 7, subject: 'Geography', location: 'Bristol', price: 85, spaces: 5, image: 'images/geography.jpg' },
-            { id: 8, subject: 'Physical Education', location: 'London', price: 75, spaces: 5, image: 'images/pe.jpg' },
-            { id: 9, subject: 'Computer Science', location: 'Manchester', price: 130, spaces: 5, image: 'images/cs.jpg' },
-            { id: 10, subject: 'Drama', location: 'Bristol', price: 105, spaces: 5, image: 'images/drama.jpg' }
-        ],
+        lessons: [], // Lessons will be fetched from the backend
         cart: [],
         showCart: false,
         sortAttribute: 'subject',
@@ -27,48 +16,72 @@ new Vue({
         orderConfirmed: false,
         confirmationMessage: ''
     },
+    // New lifecycle hook to fetch lessons when the app is mounted
+    mounted() {
+        this.fetchLessons();
+    },
     computed: {
          // A computed property that filters and sorts the lessons
         sortedLessons() {
-            // Start with the full list of lessons
-            let filtered = this.lessons;
-
-            // If there's a search query, filter the lessons
-            if (this.searchQuery) {
-                const query = this.searchQuery.toLowerCase();
-                filtered = this.lessons.filter(lesson => {
-                    // Check if the query matches any of the lesson's attributes
-                    return (
-                        lesson.subject.toLowerCase().includes(query) ||
-                        lesson.location.toLowerCase().includes(query) ||
-                        lesson.price.toString().includes(query) ||
-                        lesson.spaces.toString().includes(query)
-                    );
-                });
-            }
-             // Sort the filtered lessons
-            return filtered.sort((a, b) => {
-                let comparison = 0;
-                if (a[this.sortAttribute] > b[this.sortAttribute]) {
-                    comparison = 1;
-                } else if (a[this.sortAttribute] < b[this.sortAttribute]) {
-                    comparison = -1;
-                }
-                return this.sortOrder === 'asc' ? comparison : -comparison;
-            });
+            // The lessons array is already filtered and sorted by the backend
+            return this.lessons;
         }
     },
     methods: {
-        addToCart(lesson) {
-            if (lesson.spaces > 0) {
-                lesson.spaces--;
-                this.cart.push(lesson);
+        // Fetch lessons from the backend, with optional search and sort parameters
+        async fetchLessons() {
+            try {
+                let url = 'http://localhost:3000/lessons'; // Base URL for your Express app
+                const params = new URLSearchParams();
+
+                if (this.searchQuery) {
+                    url = 'http://localhost:3000/search';
+                    params.append('q', this.searchQuery);
+                }
+                
+                params.append('sortAttribute', this.sortAttribute);
+                params.append('sortOrder', this.sortOrder);
+
+                const response = await fetch(`${url}?${params.toString()}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                this.lessons = await response.json();
+            } catch (error) {
+                console.error("Error fetching lessons:", error);
+                alert("Failed to load lessons. Please try again later.");
+            }
+        },
+        // Method to handle sorting changes and re-fetch lessons
+        sortLessons() {
+            this.fetchLessons();
+        },
+        // Method to handle search input changes and re-fetch lessons
+        searchLessons() {
+            this.fetchLessons();
+        },
+        addToCart(lessonToAdd) {
+            // Check if the lesson is already in the cart
+            const cartItem = this.cart.find(item => item._id === lessonToAdd._id);
+            const lessonInStore = this.lessons.find(l => l._id === lessonToAdd._id);
+
+            if (lessonInStore && lessonInStore.spaces > 0) {
+                if (cartItem) {
+                    // If already in cart, increment quantity (if you track quantity)
+                    // For now, assuming one item per cart entry, so we just add another entry
+                    this.cart.push(lessonToAdd);
+                } else {
+                    this.cart.push(lessonToAdd);
+                }
+                lessonInStore.spaces--; // Optimistically update UI
             }
         },
         removeFromCart(item) {
-            const index = this.cart.indexOf(item);
-            this.cart.splice(index, 1);
-            const lesson = this.lessons.find(l => l.id === item.id);
+            const index = this.cart.findIndex(cartItem => cartItem._id === item._id);
+            if (index !== -1) {
+                this.cart.splice(index, 1);
+            }
+            const lesson = this.lessons.find(l => l._id === item._id);
             if (lesson) {
                 lesson.spaces++;
             }
@@ -87,15 +100,40 @@ new Vue({
             }
             return valid;
         },
-        submitOrder() {
+        async submitOrder() {
             if (this.validateForm()) {
-                this.orderConfirmed = true;
-                this.confirmationMessage = 'Your order has been placed successfully!';
-                this.cart = [];
-                this.name = '';
-                this.phone = '';
-                this.showCheckout = false;
-                this.showCart = false;
+                try {
+                    const orderData = {
+                        name: this.name,
+                        phone: this.phone,
+                        cart: this.cart.map(item => ({ _id: item._id, subject: item.subject })) // Send minimal cart data
+                    };
+
+                    const response = await fetch('http://localhost:3000/orders', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(orderData)
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+                    }
+
+                    this.orderConfirmed = true;
+                    this.confirmationMessage = 'Your order has been placed successfully!';
+                    this.cart = [];
+                    this.name = '';
+                    this.phone = '';
+                    this.showCheckout = false;
+                    this.showCart = false;
+                    this.fetchLessons(); // Re-fetch lessons to update available spaces in UI
+                } catch (error) {
+                    console.error("Error submitting order:", error);
+                    alert(`Failed to place order: ${error.message}`);
+                }
             }
         },
         backToLessons() {
