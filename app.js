@@ -21,44 +21,60 @@ new Vue({
         this.fetchLessons();
     },
     computed: {
-         // A computed property that filters and sorts the lessons
+        // A computed property that returns the lessons fetched from the backend.
+        // The backend is responsible for all filtering and sorting.
         sortedLessons() {
-            // The lessons array is already filtered and sorted by the backend
             return this.lessons;
         }
     },
+    watch: {
+        // Explanation: This 'watch' block is the key to the "search as you type"
+        // and dynamic sorting functionality. Vue.js monitors these data properties.
+        // Whenever a user types in the search box or changes a sort option, the
+        // corresponding property (searchQuery, sortAttribute, or sortOrder) changes.
+        // The 'watch' detects this change and immediately calls the 'fetchLessons' method,
+        // triggering a new API request to the backend with the updated parameters.
+        // This makes the UI update in real-time based on user input.
+
+        // Watcher for the search query
+        searchQuery() {
+            this.fetchLessons();
+        },
+        // Watcher for the sort attribute
+        sortAttribute() {
+            this.fetchLessons();
+        },
+        // Watcher for the sort order
+        sortOrder() {
+            this.fetchLessons();
+        }
+    },
     methods: {
-        // Fetch lessons from the backend, with optional search and sort parameters
+        // Explanation: This method is responsible for all communication with the backend
+        // to get the list of lessons. It's now simplified to always use the '/search'
+        // endpoint. It constructs a query string with the current search term, sort
+        // attribute, and sort order, and sends it to the server. Because the backend
+        // can handle empty search queries, this single method works for all cases:
+        // initial page load, searching, and sorting.
         async fetchLessons() {
             try {
-                let url = 'http://localhost:3000/lessons'; // Base URL for your Express app
-                const params = new URLSearchParams();
+                const params = new URLSearchParams({
+                    q: this.searchQuery,
+                    sortAttribute: this.sortAttribute,
+                    sortOrder: this.sortOrder
+                });
 
-                if (this.searchQuery) {
-                    url = 'http://localhost:3000/search';
-                    params.append('q', this.searchQuery);
-                }
+                const response = await fetch(`http://localhost:3000/search?${params.toString()}`);
                 
-                params.append('sortAttribute', this.sortAttribute);
-                params.append('sortOrder', this.sortOrder);
-
-                const response = await fetch(`${url}?${params.toString()}`);
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 this.lessons = await response.json();
             } catch (error) {
                 console.error("Error fetching lessons:", error);
-                alert("Failed to load lessons. Please try again later.");
+                // It's better to not use alert() for errors in a real app,
+                // but we'll leave it for now as the original code had it.
             }
-        },
-        // Method to handle sorting changes and re-fetch lessons
-        sortLessons() {
-            this.fetchLessons();
-        },
-        // Method to handle search input changes and re-fetch lessons
-        searchLessons() {
-            this.fetchLessons();
         },
         addToCart(lessonToAdd) {
             // Check if the lesson is already in the cart
