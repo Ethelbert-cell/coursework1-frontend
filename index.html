@@ -8,9 +8,91 @@
 </head>
 <body>
     <div id="app">
-
+      <div v-if="orderConfirmed">
+        <h1>{{ confirmationMessage }}</h1>
+        <button @click="backToLessons">Back to Lessons</button>
+      </div>
+      <div v-else>
+        <button @click="showCart = !showCart">
+          {{ showCart ? 'Back to Lessons' : 'Go to Cart (' + cart.length + ')'
+          }}
+        </button>
+        <div v-if="!showCart">
+          <div class="search-and-sort">
+            <input
+              type="text"
+              v-model="searchQuery"
+              placeholder="Search lessons..."
+            />
+            <div class="sorting">
+              <label for="sort-attribute">Sort by:</label>
+              <select id="sort-attribute" v-model="sortAttribute">
+                <option value="subject">Subject</option>
+                <option value="location">Location</option>
+                <option value="price">Price</option>
+                <option value="spaces">Spaces</option>
+              </select>
+              <label>
+                <input type="radio" value="asc" v-model="sortOrder" />
+                Ascending
+              </label>
+              <label>
+                <input type="radio" value="desc" v-model="sortOrder" />
+                Descending
+              </label>
+            </div>
+          </div>
+          <div class="lessons">
+            <div v-for="lesson in sortedLessons" class="lesson">
+              <img :src="'http://localhost:3000/images/' + lesson.image" :alt="lesson.subject" width="100" />
+              <h2>{{ lesson.subject }}</h2>
+              <p>{{ lesson.location }}</p>
+              <p>Price: £{{ lesson.price }}</p>
+              <p>Spaces: {{ lesson.spaces }}</p>
+              <button
+                @click="addToCart(lesson)"
+                :disabled="lesson.spaces === 0"
+              >
+                Add to Cart
+              </button>
+            </div>
+          </div>
+        </div>
+        <div v-else>
+          <h1>Shopping Cart</h1>
+          <div class="cart">
+            <div v-for="item in cart" class="cart-item">
+              <h2>{{ item.subject }}</h2>
+              <p>{{ item.location }}</p>
+              <p>Price: £{{ item.price }}</p>
+              <button @click="removeFromCart(item)">Remove</button>
+            </div>
+          </div>
+          <button
+            @click="showCheckout = true"
+            v-if="!showCheckout && cart.length > 0"
+          >
+            Checkout
+          </button>
+          <div v-if="showCheckout">
+            <h2>Checkout</h2>
+            <form @submit.prevent="submitOrder" novalidate>
+              <p>
+                <label for="name">Name:</label>
+                <input id="name" v-model="name" />
+                <span v-if="nameError" class="error">{{ nameError }}</span>
+              </p>
+              <p>
+                <label for="phone">Phone:</label>
+                <input id="phone" v-model="phone" />
+                <span v-if="phoneError" class="error">{{ phoneError }}</span>
+              </p>
+              <button type="submit">Place Order</button>
+            </form>
+          </div>
+        </div>
+      </div>
     </div>
-
     <script src="app.js"></script>
 </body>
 </html>
