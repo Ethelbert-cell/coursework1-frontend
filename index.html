@@ -44,7 +44,7 @@
           </div>
           <div class="lessons">
             <div v-for="lesson in sortedLessons" class="lesson">
-              <img :src="'http://localhost:3000/images/' + lesson.image" :alt="lesson.subject" width="100" />
+              <img :src="'https://coursework1-backend-api.onrender.com/images/' + lesson.image" :alt="lesson.subject" width="100" />
               <h2>{{ lesson.subject }}</h2>
               <p>{{ lesson.location }}</p>
               <p>Price: £{{ lesson.price }}</p>
