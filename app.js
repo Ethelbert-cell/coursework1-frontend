@@ -64,7 +64,7 @@ new Vue({
                     sortOrder: this.sortOrder
                 });
 
-                const response = await fetch(`http://localhost:3000/search?${params.toString()}`);
+                const response = await fetch(`https://coursework1-backend-api.onrender.com/search?${params.toString()}`);
                 
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
@@ -125,7 +125,7 @@ new Vue({
                         cart: this.cart.map(item => ({ _id: item._id, subject: item.subject })) // Send minimal cart data
                     };
 
-                    const response = await fetch('http://localhost:3000/orders', {
+                    const response = await fetch('https://coursework1-backend-api.onrender.com/orders', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json'
