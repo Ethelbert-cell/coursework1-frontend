@@ -13,7 +13,7 @@
         <button @click="backToLessons">Back to Lessons</button>
       </div>
       <div v-else>
-        <button @click="showCart = !showCart">
+         <button @click="showCart = !showCart" :disabled="!showCart && cart.length === 0">
           {{ showCart ? 'Back to Lessons' : 'Go to Cart (' + cart.length + ')'
           }}
         </button>
