@@ -211,11 +211,6 @@ h1, h2 {
 .confirmation button {
   margin-top: 20px;
 }
-.empty-message {
-  color: red;
-  margin-top: 10px;
-  font-size: 14px;
-}
 
 /* ---------- Responsive Adjustments ---------- */
 @media (max-width: 768px) {
